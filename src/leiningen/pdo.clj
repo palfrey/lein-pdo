@@ -13,6 +13,9 @@ Each task will be executed in a separate future. The last task will be executed
 in the current (main) thread. After it finishes, each future will be dereffed in
 order to prevent Leiningen from exiting before all tasks have finished.
 
+If :pdo { :stop-on-last-task-exit true} is set in project.clj, then when the last
+task exits we don't wait for the others, but default behaviour is to wait for all tasks.
+
 This task is primarily useful for running multiple tasks that block forever.
 
 USAGE: lein pdo cljsbuild auto, repl"
@@ -22,7 +25,9 @@ USAGE: lein pdo cljsbuild auto, repl"
                   (doall
                    (for [[task-name & args] parallel]
                      (apply-in-future project task-name args))))
-        [task-name & args] last]    
+        [task-name & args] last
+        stop-on-last-task-exit (or (-> project :pdo :stop-on-last-task-exit) false)]
     (apply-task (lookup-alias task-name project) project args)
-    (doseq [task futures]
-      @task)))
+    (if (not stop-on-last-task-exit)
+        (doseq [task futures]
+          @task))))
